@@ -4,23 +4,33 @@ import grp
 import os
 
 def parse_args():
+    def convert(func, name):
+        try:
+            return func(name)
+        except KeyError as ke:
+            raise ValueError from ke
+
+    def user(username):
+        return convert(pwd.getpwnam, username)
+
+    def group(grpname):
+        return convert(grp.getgrnam, grpname)
+
     import argparse
     ap = argparse.ArgumentParser()
-    ap.add_argument('-u', '--user', required=True)
-    ap.add_argument('-g', '--group')
+    ap.add_argument('-u', '--user', type=user, required=True)
+    ap.add_argument('-g', '--group', type=group)
     ap.add_argument('cmd', nargs='+')
     return ap.parse_args()
 
 def main():
     args = parse_args()
 
-    p = pwd.getpwnam(args.user)
-    uid = p.pw_uid
-    gid = p.pw_gid
+    uid = args.user.pw_uid
+    gid = args.user.pw_gid
 
     if args.group:
-        g = grp.getgrnam(args.group)
-        gid = g.gr_gid
+        gid = args.group.gr_gid
 
     os.setgroups([])
     os.setgid(gid)
